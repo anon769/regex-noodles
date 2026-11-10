@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Noodles</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#090d16',
+                        cardBg: '#111827',
+                        inputBg: '#1f2937',
+                        accentCyan: '#06b6d4',
+                        accentGreen: '#10b981',
+                        accentPurple: '#8b5cf6',
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            color: #f3f4f6;
+        }
+        .font-mono {
+            font-family: 'Fira Code', monospace;
+        }
+        .highlight-box mark {
+            background-color: rgba(6, 182, 212, 0.35);
+            color: #67e8f9;
+            border-bottom: 2px solid #06b6d4;
+            border-radius: 2px;
+            padding: 1px 0;
+            font-weight: 600;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+
+        /* Efeito de explosão no botão Next quando é desbloqueado */
+        @keyframes popExplosion {
+            0% {
+                transform: scale(0.8);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.8);
+            }
+            50% {
+                transform: scale(1.15);
+                box-shadow: 0 0 25px 12px rgba(6, 182, 212, 0.6);
+            }
+            75% {
+                transform: scale(0.95);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+        }
+
+        .btn-pop-animation {
+            animation: popExplosion 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-center items-center p-4 md:p-8">
+    <div class="w-full max-w-2xl flex flex-col gap-4">
+        <header class="flex justify-between items-center px-1">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-cyan-950/60 border border-cyan-800/80 flex items-center justify-center text-accentCyan">
+                    <i class="fa-solid fa-bowl-food text-xs"></i>
+                </div>
+                <h1 class="font-bold text-sm tracking-wide text-white">Regex <span class="text-accentCyan">Noodles</span></h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="level-display" class="font-mono text-xs font-semibold text-gray-400"></span>
+                <button id="btn-guide" class="text-xs font-semibold text-accentCyan hover:text-white flex items-center gap-1.5 bg-cyan-950/40 hover:bg-cyan-900/60 px-3 py-1.5 rounded-lg border border-cyan-800/60 transition-all cursor-pointer">
+                    <i class="fa-solid fa-book-bookmark text-xs"></i> Cheatsheet
+                </button>
+            </div>
+        </header>
+
+        <div class="w-full bg-gray-900 rounded-full h-1.5 overflow-hidden border border-gray-800/80">
+            <div id="progress-bar" class="bg-gradient-to-r from-accentCyan to-accentGreen h-full w-0 transition-all duration-500"></div>
+        </div>
+
+        <main class="bg-cardBg border border-gray-800 rounded-2xl p-5 md:p-6 shadow-2xl flex flex-col gap-5">
+            <div>
+                <h2 id="level-title" class="text-base font-semibold text-white mb-1.5"></h2>
+                <p id="level-desc" class="text-xs md:text-sm text-gray-400 leading-relaxed"></p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <div class="relative w-full bg-inputBg border border-gray-700/70 rounded-xl p-3.5 font-mono text-sm leading-relaxed overflow-x-auto min-h-[80px]">
+                    <div id="highlighted-text" class="highlight-box whitespace-pre-wrap break-all text-gray-300"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 bg-inputBg border border-gray-700/70 rounded-xl px-3.5 py-2.5 focus-within:border-accentCyan transition-all">
+                <span class="font-mono text-gray-500 text-base font-bold select-none">/</span>
+                <input 
+                    type="text" 
+                    id="regex-input" 
+                    class="w-full bg-transparent font-mono text-white text-sm md:text-base focus:outline-none placeholder-gray-600"
+                    placeholder="Regular expression..." 
+                    autocomplete="off" 
+                    spellcheck="false"
+                >
+                <span class="font-mono text-gray-500 text-base font-bold select-none">/</span>
+                <input 
+                    type="text" 
+                    id="flags-input" 
+                    class="w-10 bg-gray-800/80 border border-gray-700 rounded px-1.5 py-0.5 font-mono text-accentCyan text-xs text-center focus:outline-none focus:border-accentCyan"
+                    value="g" 
+                    placeholder="flags" 
+                    spellcheck="false"
+                >
+            </div>
+
+            <div class="flex justify-between items-center pt-2 border-t border-gray-800/80">
+                <button 
+                    id="btn-prev" 
+                    class="px-4 py-2 rounded-xl bg-gray-800 text-gray-300 font-medium text-xs md:text-sm transition-all duration-200 flex items-center gap-2 border border-gray-700 hover:bg-gray-700 cursor-pointer"
+                >
+                    <i class="fa-solid fa-arrow-left text-xs"></i>
+                    <span>Back</span>
+                </button>
+
+                <div class="flex items-center gap-2">
+                    <button 
+                        id="btn-skip" 
+                        class="px-4 py-2 rounded-xl bg-gray-800 text-gray-300 font-medium text-xs md:text-sm transition-all duration-200 flex items-center gap-2 border border-gray-700 hover:bg-gray-700 cursor-pointer"
+                    >
+                        <span>Skip</span>
+                        <i class="fa-solid fa-forward text-xs"></i>
+                    </button>
+                    <button 
+                        id="btn-next" 
+                        disabled 
+                        class="px-5 py-2 rounded-xl bg-gray-800 text-gray-500 font-medium text-xs md:text-sm transition-all duration-200 flex items-center gap-2 cursor-not-allowed border border-gray-700"
+                    >
+                        <span>Next</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="guide-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-cardBg border border-gray-700/80 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900/50">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bowl-food text-accentCyan text-base"></i>
+                    <h3 class="text-base font-bold text-white">Regex Noodles Cheatsheet</h3>
+                </div>
+                <button id="btn-close-guide" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition-all cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div id="guide-modal-body" class="p-5 overflow-y-auto space-y-5 text-xs text-gray-300 font-sans"></div>
+        </div>
+    </div>
+
+    <div id="victory-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-cardBg border border-gray-700/80 rounded-2xl p-6 max-w-sm w-full text-center flex flex-col items-center gap-4 shadow-2xl">
+            <div class="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl">
+                <i class="fa-solid fa-bowl-food"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white">Full Bowl!</h3>
+            <p id="victory-message" class="text-xs text-gray-400 leading-relaxed"></p>
+            <button id="btn-restart" class="w-full py-2.5 bg-gradient-to-r from-accentCyan to-accentGreen text-darkBg font-bold text-xs rounded-xl shadow-lg hover:opacity-90 transition-all cursor-pointer">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const MANUAL_DATA = {
+            tip: {
+                title: "Secret Recipe: Square Brackets [ ] vs Parentheses ( )",
+                items: [
+                    { title: "[abc] — Character Class (Single character selection)", desc: "Matches <strong>ONE single character</strong> that is 'a', 'b' OR 'c'.", example: "[ab] matches any loose 'a' or 'b'." },
+                    { title: "(abc) — Group (Word block)", desc: "Groups the <strong>entire sequence</strong> as a single unit.", example: "(abc)+ matches 'abc', 'abcabc'. (cat|dog) matches whole words." }
+                ]
+            },
+            sections: [
+                {
+                    title: "Anchors (Position)",
+                    icon: "fa-anchor",
+                    items: [
+                        { symbol: "^", desc: "Start of text or line." },
+                        { symbol: "$", desc: "End of text or line." },
+                        { symbol: "\\b", desc: "Word boundary." },
+                        { symbol: "\\B", desc: "Non-word boundary." }
+                    ]
+                },
+                {
+                    title: "Character Classes & Shortcuts",
+                    icon: "fa-font",
+                    items: [
+                        { symbol: "\\", desc: "Escape character (escapes special symbols to match them literally). E.g., \\. to match a dot or \\? for a question mark." },
+                        { symbol: "\\d", desc: "Any numeric digit (0-9)." },
+                        { symbol: "\\D", desc: "Any non-digit character." },
+                        { symbol: "\\w", desc: "Alphanumeric character or underscore (a-z, A-Z, 0-9, _)." },
+                        { symbol: "\\W", desc: "Any non-alphanumeric symbol/space." },
+                        { symbol: "\\s", desc: "Whitespace, tab, or line break." },
+                        { symbol: ".", desc: "Any character (except line break)." },
+                        { symbol: "[abc]", desc: "Any single character listed ('a', 'b', or 'c')." },
+                        { symbol: "[^abc]", desc: "Any character EXCEPT those listed ('a', 'b', or 'c')." },
+                        { symbol: "[a-z]", desc: "Lowercase character range from 'a' to 'z'." },
+                        { symbol: "[A-Z]", desc: "Uppercase character range from 'A' to 'Z'." },
+                        { symbol: "[0-9]", desc: "Digit range from '0' to '9'." }
+                    ]
+                },
+                {
+                    title: "Quantifiers (Repetition)",
+                    icon: "fa-asterisk",
+                    items: [
+                        { symbol: "*", desc: "0 or more occurrences." },
+                        { symbol: "+", desc: "1 or more occurrences (at least one)." },
+                        { symbol: "?", desc: "0 or 1 occurrence (optional)." },
+                        { symbol: "{n}", desc: "Exactly 'n' occurrences." },
+                        { symbol: "{n,}", desc: "'n' or more occurrences." },
+                        { symbol: "{n,m}", desc: "Between 'n' and 'm' occurrences." }
+                    ]
+                },
+                {
+                    title: "Groups & Alternation",
+                    icon: "fa-layer-group",
+                    items: [
+                        { symbol: "(abc)", desc: "Capturing group (isolates a sequence)." },
+                        { symbol: "a|b", desc: "Alternation (OR logic: matches 'a' or 'b')." },
+                        { symbol: "(?:abc)", desc: "Non-capturing group (grouping only)." }
+                    ]
+                },
+                {
+                    title: "Flags (Modifiers)",
+                    icon: "fa-sliders",
+                    items: [
+                        { symbol: "g", desc: "Global (finds all matches in the text)." },
+                        { symbol: "i", desc: "Case-insensitive matching." },
+                        { symbol: "m", desc: "Multiline (^ and $ work per individual line)." }
+                    ]
+                }
+            ]
+        };
+
+        const LEVELS = [
+            {
+                title: "Start Anchor (^)",
+                desc: "Use the anchor <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>^</code> to match the word 'Start' strictly at the beginning of the text.",
+                targetText: "Start 1 Start 2 End",
+                validate: (matches) => matches.length === 1 && matches[0] === "Start"
+            },
+            {
+                title: "End Anchor ($)",
+                desc: "Use the anchor <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>$</code> to match the word 'end' strictly at the end of the text.",
+                targetText: "end end middle end",
+                validate: (matches) => matches.length === 1 && matches[0] === "end"
+            },
+            {
+                title: "Word Boundary (\\b)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>\\b</code> to match the standalone word 'cat', ignoring 'catch'.",
+                targetText: "cat cat catch",
+                validate: (matches) => matches.length === 2 && matches[0] === "cat" && matches[1] === "cat"
+            },
+            {
+                title: "Non-Word Boundary (\\B)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>\\B</code> to capture 'top' only when it is inside a word.",
+                targetText: "desktop top",
+                validate: (matches) => matches.length === 1 && matches[0] === "top"
+            },
+            {
+                title: "Numeric Digit (\\d)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>\\d</code> to match all single numeric digits.",
+                targetText: "7 7 X",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["7", "7"])
+            },
+            {
+                title: "Non-Digit (\\D)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>\\D</code> to match all non-digit characters.",
+                targetText: "A B 9",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["A", " ", "B", " "])
+            },
+            {
+                title: "Alphanumeric Character (\\w)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>\\w</code> to match all word characters.",
+                targetText: "_dev 123 -",
+                validate: (matches) => matches.length === 7 && matches.join('') === "_dev123"
+            },
+            {
+                title: "Non-Alphanumeric (\\W)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>\\W</code> to match symbols and spaces (non-word characters).",
+                targetText: ": @ abc",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify([":", " ", "@", " "])
+            },
+            {
+                title: "Whitespace (\\s)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>\\s</code> to match space characters.",
+                targetText: "A B C",
+                validate: (matches) => matches.length === 2 && matches.every(m => m === " ")
+            },
+            {
+                title: "Wildcard Dot (.)",
+                desc: "Use the dot <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>.</code> to match 3-letter words starting with 'c' and ending with 't'.",
+                targetText: "cat cot inv",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["cat", "cot"])
+            },
+            {
+                title: "Character Class [abc]",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>[abc]</code> to find 'a', 'b', or 'c'.",
+                targetText: "a b x",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["a", "b"])
+            },
+            {
+                title: "Negated Character Class [^abc]",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>[^abc]</code> to find everything except 'a', 'b', or 'c'.",
+                targetText: "X Y a",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["X", " ", "Y", " "])
+            },
+            {
+                title: "Character Range [a-z]",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>[a-z]</code> to match lowercase letters.",
+                targetText: "b c A",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["b", "c"])
+            },
+            {
+                title: "Zero or More Quantifier (*)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>*</code> to match 'go' with zero or more 'o's.",
+                targetText: "g go X",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["g", "go"])
+            },
+            {
+                title: "One or More Quantifier (+)",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>+</code> to match sequences of one or more digits.",
+                targetText: "123 4 X",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["123", "4"])
+            },
+            {
+                title: "Optional Quantifier (?)",
+                desc: "Use the optional quantifier <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>?</code> to match both <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>color</code> and <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>colour</code>.",
+                targetText: "color colour invalid",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["color", "colour"])
+            },
+            {
+                title: "Exact Quantifier {n}",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>{3}</code> to match exactly 3 letters.",
+                targetText: "abc def ab",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["abc", "def"])
+            },
+            {
+                title: "At Least N Quantifier {n,}",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>{2,}</code> to match 2 or more consecutive 'a's.",
+                targetText: "aa aaa a",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["aa", "aaa"])
+            },
+            {
+                title: "Range Quantifier {n,m}",
+                desc: "Use <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>{2,3}</code> to match 2 to 3 digits.",
+                targetText: "12 123 1",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["12", "123"])
+            },
+            {
+                title: "Capturing Group (abc)",
+                desc: "Use parentheses to group and capture repeated 'ha'.",
+                targetText: "ha haha ho",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["ha", "haha"])
+            },
+            {
+                title: "Alternation (a|b)",
+                desc: "Use the <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>|</code> operator to match 'yes' or 'no'.",
+                targetText: "yes no maybe",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["yes", "no"])
+            },
+            {
+                title: "Non-Capturing Group (?:abc)",
+                desc: "Use a non-capturing group to match brown items.",
+                targetText: "brown shirt brown pants blue",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["brown shirt", "brown pants"])
+            },
+            {
+                title: "Global Flag (g)",
+                desc: "Type <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>x</code> and keep the <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>g</code> flag.",
+                targetText: "x x y",
+                validate: (matches, text, regex, flags) => flags.includes('g') && matches.length === 2
+            },
+            {
+                title: "Case-Insensitive Flag (i)",
+                desc: "Type <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>html</code> and add the <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>gi</code> flags.",
+                targetText: "html HTML js",
+                validate: (matches, text, regex, flags) => flags.includes('i') && flags.includes('g') && matches.length === 2 && regex.source === 'html'
+            },
+            {
+                title: "Multiline Flag (m)",
+                desc: "Type <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>^Line</code> and add the <code class='text-accentCyan font-mono bg-gray-800 px-1 py-0.5 rounded'>gm</code> flags.",
+                targetText: "Line 1\nLine 2\nOther",
+                validate: (matches, text, regex, flags) => flags.includes('m') && flags.includes('g') && matches.length === 2 && regex.source === '^Line'
+            },
+            {
+                title: "Full Email Validation",
+                desc: "Capture valid email addresses.",
+                targetText: "User.name@domain.com user@gmail.com invalid@",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["User.name@domain.com", "user@gmail.com"])
+            },
+            {
+                title: "Phone Number Extraction",
+                desc: "Capture formatted US phone numbers (e.g., (123) 456-7890).",
+                targetText: "(123) 456-7890 (987) 654-3210 1234-5678",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["(123) 456-7890", "(987) 654-3210"])
+            },
+            {
+                title: "Secure URLs (HTTPS)",
+                desc: "Capture only URLs that start strictly with https://.",
+                targetText: "https://site.com https://secure.org http://insecure.com",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["https://site.com", "https://secure.org"])
+            },
+            {
+                title: "Opening HTML Tags",
+                desc: "Capture simple opening HTML tags like &lt;div&gt; or &lt;p&gt;.",
+                targetText: "<div> <p> span",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["<div>", "<p>"])
+            },
+            {
+                title: "Basic IP Addresses",
+                desc: "Capture IPv4 addresses from text.",
+                targetText: "The primary server is 192.168.0.1 and backup is 10.0.0.1.",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["192.168.0.1", "10.0.0.1"])
+            },
+            {
+                title: "Currency Values ($)",
+                desc: "Capture dollar amounts with cents (e.g., $ 1,250.50 or $ 15.90).",
+                targetText: "$ 1,250.50 $ 15.90 $ abc",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["$ 1,250.50", "$ 15.90"])
+            },
+            {
+                title: "Date Format (MM/DD/YYYY)",
+                desc: "Capture valid dates in MM/DD/YYYY format.",
+                targetText: "12/25/2026, more dates here, 01/01/2025, etc.",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["12/25/2026", "01/01/2025"])
+            },
+            {
+                title: "Hex Color Codes (#RGB or #RRGGBB)",
+                desc: "Capture valid hex color codes prefixed with #.",
+                targetText: "#fff #06b6d4 #zzzzzz #05b #ff3f3z ...",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["#fff", "#06b6d4"])
+            },
+            {
+                title: "URL Slugs",
+                desc: "Capture URL paths consisting of lowercase letters and hyphens enclosed in slashes.",
+                targetText: "/learn-regex-easy/ /javascript-guide/ /INVALID/",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["/learn-regex-easy/", "/javascript-guide/"])
+            },
+            {
+                title: "Hashtag Extraction",
+                desc: "Capture words starting with # in social media posts.",
+                targetText: "#regex #javascript invalid",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["#regex", "#javascript"])
+            },
+            {
+                title: "@Mentions Extraction",
+                desc: "Capture usernames starting with @.",
+                targetText: "@dev_frontend @user123 invalid",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["@dev_frontend", "@user123"])
+            },
+            {
+                title: "US ZIP Code Validation",
+                desc: "Capture ZIP codes in standard format (5 digits or 5+4 digits).",
+                targetText: "90210 10001-1234 50505-03",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["90210", "10001-1234"])
+            },
+            {
+                title: "SSN Mask Validation",
+                desc: "Capture US Social Security numbers formatted as 000-00-0000.",
+                targetText: "123-45-6789 987-65-4321 123456789",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["123-45-6789", "987-65-4321"])
+            },
+            {
+                title: "Double Space Cleanup",
+                desc: "Capture occurrences of two or more consecutive spaces.",
+                targetText: "a  b a   b a b",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["  ", "   "])
+            },
+            {
+                title: "File Name Extraction",
+                desc: "Capture filenames with extensions (e.g., .png, .html).",
+                targetText: "index.html script.js folder/",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["index.html", "script.js"])
+            },
+            {
+                title: "Simple Passwords",
+                desc: "Capture passwords containing letters and numbers with at least 6 characters.",
+                targetText: "Abc123 Xpto999 weakpass",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["Abc123", "Xpto999"])
+            },
+            {
+                title: "URL Query Parameters",
+                desc: "Capture URL search parameters (e.g., ?search=regex&page=2).",
+                targetText: "?search=regex&page=2 ?id=10&tab=home https://site.com",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["?search=regex&page=2", "?id=10&tab=home"])
+            },
+            {
+                title: "Software Versions (SemVer)",
+                desc: "Capture version numbers formatted as X.Y.Z (e.g., 1.0.4, 2.12.0).",
+                targetText: "1.0.4 2.12.0 v1.0",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["1.0.4", "2.12.0"])
+            },
+            {
+                title: "HTML Code Comments",
+                desc: "Capture entire HTML comment blocks <!-- comment -->.",
+                targetText: "<!-- Comment 1 --> <!-- Comment 2 --> <br>",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["<!-- Comment 1 -->", "<!-- Comment 2 -->"])
+            },
+            {
+                title: "HTML Tag Attributes",
+                desc: "Capture class/id attribute key-value pairs in HTML.",
+                targetText: "class='btn-primary' id='submit' loose_text",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["class='btn-primary'", "id='submit'"])
+            },
+            {
+                title: "Time Extraction (24-Hour)",
+                desc: "Capture time in HH:MM format.",
+                targetText: "Meeting at 14:30 and ends at 18:00.",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["14:30", "18:00"])
+            },
+            {
+                title: "Geographic Coordinates (Lat/Long)",
+                desc: "Capture simple decimal coordinates.",
+                targetText: "-23.5505 -46.6333 abc",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["-23.5505", "-46.6333"])
+            },
+            {
+                title: "CSS Property Block",
+                desc: "Capture valid CSS key-value pairs ending with a semicolon.",
+                targetText: "color: #000; background-color: #fff; invalid-css",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["color: #000;", "background-color: #fff;"])
+            },
+            {
+                title: "Email Domains",
+                desc: "Capture corporate email domain names starting with @.",
+                targetText: "@company.com @site.org invalid",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["@company.com", "@site.org"])
+            },
+            {
+                title: "Ultimate Challenge: UUIDv4 Identifiers",
+                desc: "Capture UUID formatted strings (8-4-4-4-12 hex characters).",
+                targetText: "123e4567-e89b-12d3-a456-426614174000 550e8400-e29b-41d4-a716-446655440000 123-abc",
+                validate: (matches) => JSON.stringify(matches) === JSON.stringify(["123e4567-e89b-12d3-a456-426614174000", "550e8400-e29b-41d4-a716-446655440000"])
+            }
+        ];
+
+        let currentLevelIdx = 0;
+
+        const levelDisplay = document.getElementById('level-display');
+        const progressBar = document.getElementById('progress-bar');
+        const levelTitle = document.getElementById('level-title');
+        const levelDesc = document.getElementById('level-desc');
+        const highlightedText = document.getElementById('highlighted-text');
+        const regexInput = document.getElementById('regex-input');
+        const flagsInput = document.getElementById('flags-input');
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnSkip = document.getElementById('btn-skip');
+        const victoryModal = document.getElementById('victory-modal');
+        const victoryMessage = document.getElementById('victory-message');
+        const btnRestart = document.getElementById('btn-restart');
+        
+        const btnGuide = document.getElementById('btn-guide');
+        const guideModal = document.getElementById('guide-modal');
+        const guideModalBody = document.getElementById('guide-modal-body');
+        const btnCloseGuide = document.getElementById('btn-close-guide');
+
+        function buildManualUI() {
+            let html = `
+                <div class="bg-gradient-to-r from-purple-950/40 to-cyan-950/40 border border-purple-800/50 p-3.5 rounded-xl">
+                    <h4 class="text-accentPurple font-bold mb-2 flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-lightbulb"></i> ${MANUAL_DATA.tip.title}
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] font-sans">
+            `;
+
+            MANUAL_DATA.tip.items.forEach(item => {
+                html += `
+                    <div class="bg-inputBg/80 p-2.5 rounded-lg border border-purple-900/60">
+                        <span class="text-accentGreen font-bold font-mono text-xs">${item.title}</span>
+                        <p class="text-gray-300 mt-1">${item.desc}</p>
+                        <p class="text-gray-400 mt-0.5 italic">Example: <code class="text-accentCyan font-mono">${item.example}</code></p>
+                    </div>
+                `;
+            });
+
+            html += `</div></div>`;
+
+            MANUAL_DATA.sections.forEach(sec => {
+                html += `
+                    <div>
+                        <h4 class="text-accentCyan font-semibold mb-2.5 border-b border-gray-800 pb-1 flex items-center gap-2">
+                            <i class="fa-solid ${sec.icon} text-[10px]"></i> ${sec.title}
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono">
+                `;
+                sec.items.forEach(item => {
+                    html += `
+                        <div class="bg-inputBg p-2 rounded-lg border border-gray-800">
+                            <span class="text-accentGreen font-bold font-mono">${escapeHtml(item.symbol)}</span>
+                            <p class="text-gray-400 text-[11px] font-sans mt-0.5">${item.desc}</p>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            });
+
+            guideModalBody.innerHTML = html;
+        }
+
+        function buildLevelUI(idx) {
+            const level = LEVELS[idx];
+            levelTitle.innerHTML = `Question ${idx + 1}: ${level.title}`;
+            levelDesc.innerHTML = level.desc;
+            levelDisplay.innerText = `Level ${idx + 1}/${LEVELS.length}`;
+            
+            const progressPercent = (idx / LEVELS.length) * 100;
+            progressBar.style.width = `${progressPercent}%`;
+
+            if (idx === 0) {
+                btnPrev.style.opacity = '0.5';
+                btnPrev.style.cursor = 'not-allowed';
+            } else {
+                btnPrev.style.opacity = '1';
+                btnPrev.style.cursor = 'pointer';
+            }
+        }
+
+        function initGame() {
+            currentLevelIdx = 0;
+            buildManualUI();
+            loadLevel(currentLevelIdx);
+        }
+
+        function loadLevel(idx) {
+            regexInput.value = '';
+            flagsInput.value = 'g';
+
+            buildLevelUI(idx);
+
+            disableNextButton();
+            evaluateRegex();
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function evaluateRegex() {
+            const level = LEVELS[currentLevelIdx];
+            const pattern = regexInput.value;
+            const flags = flagsInput.value;
+            const text = level.targetText;
+
+            if (!pattern) {
+                highlightedText.innerHTML = escapeHtml(text);
+                disableNextButton();
+                return;
+            }
+
+            try {
+                const regex = new RegExp(pattern, flags);
+                let matches = [];
+                let match;
+
+                if (flags.includes('g')) {
+                    while ((match = regex.exec(text)) !== null) {
+                        if (match[0] === '') {
+                            regex.lastIndex++;
+                            continue;
+                        }
+                        matches.push(match[0]);
+                        if (regex.lastIndex === 0) break;
+                    }
+                } else {
+                    match = regex.exec(text);
+                    if (match && match[0] !== '') {
+                        matches.push(match[0]);
+                    }
+                }
+
+                renderHighlight(text, regex);
+
+                const isValid = level.validate(matches, text, regex, flags);
+
+                if (isValid) {
+                    enableNextButton();
+                } else {
+                    disableNextButton();
+                }
+
+            } catch (err) {
+                highlightedText.innerHTML = escapeHtml(text);
+                disableNextButton();
+            }
+        }
+
+        function renderHighlight(text, regex) {
+            try {
+                if (!regex.global) {
+                    let match = regex.exec(text);
+                    if (!match || match[0] === '') {
+                        highlightedText.innerHTML = escapeHtml(text);
+                        return;
+                    }
+                    const start = match.index;
+                    const end = start + match[0].length;
+                    const before = escapeHtml(text.slice(0, start));
+                    const matched = escapeHtml(text.slice(start, end));
+                    const after = escapeHtml(text.slice(end));
+                    highlightedText.innerHTML = `${before}<mark>${matched}</mark>${after}`;
+                } else {
+                    let lastIndex = 0;
+                    let html = '';
+                    let match;
+                    
+                    regex.lastIndex = 0;
+                    
+                    while ((match = regex.exec(text)) !== null) {
+                        if (match[0] === '') {
+                            regex.lastIndex++;
+                            continue;
+                        }
+                        const start = match.index;
+                        const end = start + match[0].length;
+                        html += escapeHtml(text.slice(lastIndex, start));
+                        html += `<mark>${escapeHtml(text.slice(start, end))}</mark>`;
+                        lastIndex = end;
+                    }
+                    html += escapeHtml(text.slice(lastIndex));
+                    highlightedText.innerHTML = html || escapeHtml(text);
+                }
+            } catch (e) {
+                highlightedText.innerHTML = escapeHtml(text);
+            }
+        }
+
+        function enableNextButton() {
+            if (btnNext.disabled) {
+                btnNext.disabled = false;
+                btnNext.className = "px-5 py-2 rounded-xl bg-gradient-to-r from-accentCyan to-accentGreen text-darkBg font-bold text-xs md:text-sm flex items-center gap-2 shadow-lg cursor-pointer hover:opacity-90 active:scale-95 btn-pop-animation";
+            }
+        }
+
+        function disableNextButton() {
+            btnNext.disabled = true;
+            btnNext.className = "px-5 py-2 rounded-xl bg-gray-800 text-gray-500 font-medium text-xs md:text-sm transition-all duration-200 flex items-center gap-2 cursor-not-allowed border border-gray-700";
+        }
+
+        btnGuide.addEventListener('click', () => {
+            guideModal.classList.remove('hidden');
+        });
+
+        btnCloseGuide.addEventListener('click', () => {
+            guideModal.classList.add('hidden');
+        });
+
+        guideModal.addEventListener('click', (e) => {
+            if (e.target === guideModal) {
+                guideModal.classList.add('hidden');
+            }
+        });
+
+        regexInput.addEventListener('input', evaluateRegex);
+        flagsInput.addEventListener('input', evaluateRegex);
+
+        btnNext.addEventListener('click', () => {
+            if (currentLevelIdx < LEVELS.length - 1) {
+                currentLevelIdx++;
+                loadLevel(currentLevelIdx);
+            } else {
+                progressBar.style.width = '100%';
+                victoryMessage.innerText = `Congratulations! You cooked perfectly and completed all ${LEVELS.length} levels of Regex Noodles!`;
+                victoryModal.classList.remove('hidden');
+            }
+        });
+
+        btnPrev.addEventListener('click', () => {
+            if (currentLevelIdx > 0) {
+                currentLevelIdx--;
+                loadLevel(currentLevelIdx);
+            }
+        });
+
+        btnSkip.addEventListener('click', () => {
+            if (currentLevelIdx < LEVELS.length - 1) {
+                currentLevelIdx++;
+                loadLevel(currentLevelIdx);
+            } else {
+                currentLevelIdx = 0;
+                loadLevel(currentLevelIdx);
+            }
+        });
+
+        btnRestart.addEventListener('click', () => {
+            victoryModal.classList.add('hidden');
+            initGame();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !btnNext.disabled) {
+                btnNext.click();
+            }
+            if (e.key === 'Escape' && !guideModal.classList.contains('hidden')) {
+                guideModal.classList.add('hidden');
+            }
+        });
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+O Regex Noodles é uma aplicação web minimalista que oferece um tutorial 100% prático de regex.
+O nome nasceu de uma comparação: aprender o essencial de regex é tão fácil quando preparar um noodles instantâneo.
